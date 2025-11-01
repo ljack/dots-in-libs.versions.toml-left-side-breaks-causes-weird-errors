@@ -1,27 +1,45 @@
-| :memo: | There is a matching reproducer for the Groovy DSL [here](https://github.com/gradle/gradle-issue-reproducer/tree/groovy-dsl) |
-|---|---|
+# Kotlin Hello World + Version Catalog reproducer
 
-# Gradle issue reproducer
+This project is a minimal Kotlin/JVM "Hello, world" application that uses Gradle's Version Catalogs (`gradle/libs.versions.toml`). It also demonstrates a "weird"/confusing error message that occurs when a library or plugin alias in the catalog contains a dot (`.`) on the left side (e.g. `abba.cabba`).
 
-This is a template repository to create reproducer projects for Gradle issues.
-The template contains a GitHub Action definition that runs a Gradle build upon each code change.
-To quickly learn how it works, check the following screencast:
+## What this project contains
+- Simple Kotlin app that prints the current time using `kotlinx-datetime`.
+- Working aliases in `gradle/libs.versions.toml` (e.g. `kotlinx-datetime`, `kotlin-jvm`).
+- Intentionally broken aliases that contain dots (e.g. `abba.cabba`) under both `[libraries]` and `[plugins]` sections to illustrate the problem.
 
-https://user-images.githubusercontent.com/419883/147940456-d0c96c90-f2b5-4574-8133-09647db9545a.mov
+## Prereqs
+- JDK 17+
+- Internet access to download dependencies
 
-## How to use the template
+## Run the working build
+```
+./gradlew run
+```
+Expected output (example):
+```
+> Task :run
+Hello, world! It is 2025-11-01T23:21:42.123[...]
+```
 
-- Fork this repository
-  - On the main page, click the `Use this Template` button
-  - Specify the user/org name and a repository name
-  - Select `Public` for repository type
-  - Select `Include all branches`
-  - Click `Create Repository from template`
-- Modify the project in the repository to reproduce the issue
-  - You can clone your new forked repository locally and push changes, as usual
-  - You can also edit your reproducer in an online editor by replacing `github.com` with `github.dev` in the URL (or by pressing the '.' key on the keyboard).
-- Adjust the [GitHub Action file](.github/workflows/run-reproducer.yml)
-  - You can configure the executed Gradle tasks as well as the environment (task options, log level, JVM version, operating system, etc)
-  - The documentation for the Gradle GitHub Action is available [here](https://github.com/gradle/actions/blob/main/docs/setup-gradle.md)
-- Verify that the reproducer exhibits the problem on the [GitHub Action page](https://github.com/gradle/gradle-issue-reproducer/actions)
-- Link your reproducer to the issue
+## Reproduce the "weird error" with dotted aliases
+There is an alternative build script that tries to use the dotted aliases from the version catalog.
+Run it with the `-b` flag:
+```
+./gradlew -b build-dotted.gradle.kts run
+```
+You should see a confusing error related to resolving `libs.plugins.abba.cabba` and/or `libs.abba.cabba`. Depending on Gradle version, the message can look like one of:
+- Could not get unknown property 'libs' for PluginDependenciesSpec of type org.gradle.plugin.use.internal.DefaultPluginRequestCollector.
+- No signature of method: PluginDependenciesSpec.alias() is applicable...
+- Failed to apply plugin 'org.jetbrains.kotlin.jvm' (when resolution happens in a later phase)
+
+The root cause is that alias names in a Version Catalog must not contain dots. When a dotted name is present on the left side in `libs.versions.toml`, Gradle generates type-safe accessors that become ambiguous or malformed, yielding non-obvious error messages when referenced.
+
+## Files of interest
+- `gradle/libs.versions.toml` – contains both working aliases and the intentionally dotted aliases (`abba.cabba`).
+- `build.gradle.kts` – normal working Kotlin/JVM app using catalog aliases.
+- `build-dotted.gradle.kts` – tries to use the dotted aliases to provoke the error.
+- `src/main/kotlin/Main.kt` – minimal app that prints a timestamp.
+
+## Workarounds / Notes
+- Do not use dots in alias names in Version Catalogs. Prefer letters, digits, and dashes/underscores (e.g. `abba_cabba` or `abba-cabba`).
+- If you need grouping, use prefixing like `abbaCabbaxxx` or nested tables in TOML without dots in the alias keys themselves.

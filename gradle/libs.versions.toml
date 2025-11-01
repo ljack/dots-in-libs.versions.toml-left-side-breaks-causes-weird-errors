@@ -1,0 +1,21 @@
+# Version Catalog
+
+[versions]
+kotlin = "2.0.21"
+kotlinx-datetime = "0.6.1"
+
+[libraries]
+# A normal, working alias used by the sample app
+kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+
+# Intentionally problematic alias name containing a dot on the left side.
+# Having dotted names here has been observed to lead to confusing error messages in some Gradle versions.
+# This entry is not used by the build, it is here to demonstrate the parsing/problem behavior.
+abba.cabba = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx-datetime" }
+
+[plugins]
+# Kotlin JVM plugin via version catalog
+kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+
+# Another intentionally dotted alias name to demonstrate the issue when used as an alias in the plugins block
+abba.cabba = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
